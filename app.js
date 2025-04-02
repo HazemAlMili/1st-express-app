@@ -1,22 +1,35 @@
 import express from "express";
 import bcrypt from "bcrypt";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const app = express();
 const port = 3000;
-//Store in memory
+
+// تعريف __dirname في بيئة ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// تخزين المستخدمين في الذاكرة
 const users = [];
 
 app.use(express.json());
+app.use(express.static("public"));
 
-//Register User API
+// راوت لعرض الصفحة الرئيسية
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// واجهة تسجيل المستخدم
 app.post("/register", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const findUser = users.find((data) => email == data.email);
+    const findUser = users.find((data) => data.email === email);
     if (findUser) {
-      res.status(400).send("Wrong Email or Password");
+      return res.status(400).send("Wrong Email or Password");
     }
-    //Hash Password
+    // تشفير كلمة المرور
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = { email, password: hashedPassword };
     users.push(user);
@@ -27,16 +40,14 @@ app.post("/register", async (req, res) => {
   }
 });
 
-//Login User API
+// واجهة تسجيل الدخول (اختياري)
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const findUser = users.find((data) => email == data.email);
-    // Check if user exists
+    const findUser = users.find((data) => data.email === email);
     if (!findUser) {
       return res.status(400).send("Wrong Email or Password");
     }
-    //Compare Password
     const passwordMatch = await bcrypt.compare(password, findUser.password);
     if (!passwordMatch) {
       return res.status(400).send("Wrong Email or Password");
